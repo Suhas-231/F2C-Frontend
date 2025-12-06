@@ -12,7 +12,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSelectFarmer, onSelectConsu
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 text-white py-24 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 text-white py-16 md:py-24 overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="absolute top-10 left-10 w-32 h-32 bg-white opacity-10 rounded-full"></div>
         <div className="absolute bottom-10 right-10 w-48 h-48 bg-white opacity-5 rounded-full"></div>
@@ -27,22 +27,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSelectFarmer, onSelectConsu
                 />
               </div>
 
-              <h1 className="text-6xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
                 Farm2Consumer
               </h1>
             </div>
             <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-2 inline-block mb-6">
               <p className="text-green-100 font-semibold text-lg px-4">🌾 Connecting Farms to Your Table 🌾</p>
             </div>
-            <p className="text-xl mb-8 max-w-4xl mx-auto leading-relaxed text-green-50">
+            <p className="text-lg md:text-xl mb-8 max-w-4xl mx-auto leading-relaxed text-green-50">
               🌱 Bridging the gap between farmers and consumers for fresh, organic produce. 
               Experience farm-to-table freshness while supporting local agriculture and sustainable farming practices.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-12 px-4">
               <button
                 onClick={onSelectFarmer}
-                className="group bg-white text-green-600 px-12 py-5 rounded-2xl font-bold hover:bg-green-50 transition-all duration-300 flex items-center space-x-3 shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 border-2 border-transparent hover:border-green-200"
+                className="group w-full sm:w-auto bg-white text-green-600 px-8 md:px-12 py-4 md:py-5 rounded-2xl font-bold hover:bg-green-50 transition-all duration-300 flex items-center justify-center space-x-3 shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 border-2 border-transparent hover:border-green-200"
               >
                 <Sprout className="h-6 w-6 group-hover:scale-110 transition-transform" />
                 <span className="text-xl">Join as Farmer</span>
@@ -50,7 +50,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSelectFarmer, onSelectConsu
               </button>
               <button
                 onClick={onSelectConsumer}
-                className="group bg-green-700 text-white px-12 py-5 rounded-2xl font-bold hover:bg-green-800 transition-all duration-300 flex items-center space-x-3 shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 border-2 border-green-600 hover:border-green-500"
+                className="group w-full sm:w-auto bg-green-700 text-white px-8 md:px-12 py-4 md:py-5 rounded-2xl font-bold hover:bg-green-800 transition-all duration-300 flex items-center justify-center space-x-3 shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 border-2 border-green-600 hover:border-green-500"
               >
                 <ShoppingCart className="h-6 w-6 group-hover:scale-110 transition-transform" />
                 <span className="text-xl">Shop Fresh Produce</span>
@@ -69,10 +69,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSelectFarmer, onSelectConsu
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-white">
+      <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Farm2Consumer?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose Farm2Consumer?</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Experience the future of agriculture with our innovative platform that connects you directly to fresh, quality produce
             </p>
@@ -115,7 +115,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSelectFarmer, onSelectConsu
       </section>
 
       {/* Statistics Section */}
-      <section className="bg-gradient-to-r from-green-600 to-emerald-600 py-20 text-white">
+      <section className="bg-gradient-to-r from-green-600 to-emerald-600 py-12 md:py-20 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Our Growing Community</h2>
@@ -151,10 +151,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSelectFarmer, onSelectConsu
       </section>
 
       {/* Trust Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 md:py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Trusted by Farmers & Consumers</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Trusted by Farmers & Consumers</h2>
             <p className="text-xl text-gray-600">Building sustainable relationships in agriculture</p>
           </div>
           

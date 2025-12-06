@@ -10,14 +10,14 @@ import Chatbot from './components/Chatbot';
 import OtpVerification from './components/OtpVerification';
 import { getCurrentUser, logout, isAuthenticated } from './utils/database';
 
-type CurrentView = 
-  | 'landing' 
-  | 'register-farmer' 
-  | 'register-consumer' 
-  | 'login' 
-  | 'otp-verification' 
-  | 'farmer-dashboard' 
-  | 'consumer-dashboard' 
+type CurrentView =
+  | 'landing'
+  | 'register-farmer'
+  | 'register-consumer'
+  | 'login'
+  | 'otp-verification'
+  | 'farmer-dashboard'
+  | 'consumer-dashboard'
   | 'admin-console';
 
 function App() {
@@ -68,9 +68,9 @@ function App() {
   const handleRegistrationSuccess = (userData: any) => {
     console.log('Registration successful, user data:', userData);
     // Pass phone/email to OTP verification for display or verification
-    setOtpVerificationData({ 
-      phone: userData.phone, 
-      email: userData.email 
+    setOtpVerificationData({
+      phone: userData.phone,
+      email: userData.email
     });
     setCurrentView('otp-verification');
   };
@@ -89,12 +89,12 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-green-600">Farm2Consumer</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-green-600">Farm2Consumer</h1>
             </div>
 
             {currentUser && (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
+                <span className="hidden md:block text-sm text-gray-600">
                   Welcome, {currentUser.name || currentUser.fullName}
                 </span>
 
@@ -222,7 +222,7 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       {renderHeader()}
       <main>{renderContent()}</main>
-      
+
       {showChatbot && (
         <Chatbot userType={(currentUser && currentUser.role === 'farmer') ? 'farmer' : 'consumer'} onClose={() => setShowChatbot(false)} />
       )}

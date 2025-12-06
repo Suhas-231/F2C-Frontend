@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ShoppingCart, MessageCircle, MapPin, Truck, Clock, User, CreditCard as Edit, Save, X, History, Bell, Star } from 'lucide-react';
-import { getProducts, addToCart, getCart, getRecommendations, updateSearchHistory, getUserOrders, updateUserProfile, getOrderStatus } from '../utils/database';
+import { Search, ShoppingCart, MessageCircle, MapPin, Truck, Clock, User as UserIcon, CreditCard as Edit, Save, X, History, Bell, Star } from 'lucide-react';
+import { getProducts, addToCart, getCart, getRecommendations, updateSearchHistory, getUserOrders, updateUserProfile, getOrderStatus, User } from '../utils/database';
 import Cart from './Cart';
 import Chatbot from './Chatbot';
 import notify from '../utils/notify';
 
 interface ConsumerDashboardProps {
-  user: any;
+  user: User;
 }
 
 const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
@@ -61,7 +61,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
       window.location.href = '/login';
       return;
     }
-    
+
     const loadData = async () => {
       try {
         const allProducts = await getProducts();
@@ -72,16 +72,16 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         });
         setProducts(availableProducts);
         setFilteredProducts(availableProducts);
-        
+
         const userCart = await getCart(user.id);
         setCart(userCart);
-        
+
         const userRecommendations = await getRecommendations(user.id);
         setRecommendations(userRecommendations);
-        
+
         const userOrders = await getUserOrders(user.id);
         setOrders(userOrders);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading consumer data:', error);
         // If there's an authentication error, redirect to login
         if (error.message && error.message.includes('Authentication')) {
@@ -91,7 +91,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         }
       }
     };
-    
+
     loadData();
     const interval = setInterval(async () => {
       try {
@@ -104,7 +104,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         if (Object.keys(statusUpdates).length > 0) {
           setTrackingStatuses(prev => ({ ...prev, ...statusUpdates }));
           setOrders(currentOrders.map(o => ({ ...o, status: statusUpdates[o.id] || o.status })));
-          
+
           // Check for status changes and show notifications
           Object.entries(statusUpdates).forEach(([orderId, newStatus]) => {
             const order = currentOrders.find(o => o.id === orderId);
@@ -129,7 +129,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
                   notificationType = 'info';
               }
               showNotification(notificationMessage);
-              
+
               // Add to order notifications
               setOrderNotifications(prev => [...prev, {
                 id: `${orderId}-${newStatus}-${Date.now()}`,
@@ -141,7 +141,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             }
           });
         }
-      } catch {}
+      } catch { }
     }, 5000);
     return () => clearInterval(interval);
   }, [user.id]);
@@ -162,7 +162,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
           return addressParts[addressParts.length - 1].trim();
         }))].sort();
         setLocations(uniqueLocations);
-        
+
         let filtered = products;
 
         if (searchTerm) {
@@ -178,7 +178,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         }
 
         if (selectedLocation) {
-          filtered = filtered.filter(product => 
+          filtered = filtered.filter(product =>
             product.farmerAddress.toLowerCase().includes(selectedLocation.toLowerCase())
           );
         }
@@ -205,7 +205,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         console.error('Error filtering products:', error);
       }
     };
-    
+
     filterProducts();
   }, [searchTerm, selectedCategory, selectedLocation, sortBy, products, user.id]);
 
@@ -261,8 +261,8 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
 
   const renderProductCard = (product: any) => (
     <div key={product.id} className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-      <img 
-        src={product.image} 
+      <img
+        src={product.image}
         alt={product.cropName}
         className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
       />
@@ -272,14 +272,14 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             {product.cropCategory}
           </span>
         </div>
-        
+
         <h4 className="font-bold text-xl mb-2 text-gray-900">{product.cropName}</h4>
-        
+
         <div className="flex items-center space-x-2 mb-4">
           <MapPin className="h-4 w-4 text-gray-400" />
           <span className="text-sm text-gray-600 font-medium">By {product.farmerName}</span>
         </div>
-        
+
         <div className="flex items-center space-x-4 mb-4">
           <div className="flex items-center space-x-1">
             <Clock className="h-4 w-4 text-green-500" />
@@ -294,7 +294,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         <div className="mb-3">
           <span className="text-xs text-gray-500">Listed on: {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : 'N/A'}</span>
         </div>
-        
+
         {/* Seasonal Indicator */}
         {product.isSeasonal && (
           <div className="flex items-center space-x-1 mb-3">
@@ -304,7 +304,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             </span>
           </div>
         )}
-        
+
         <div className="flex justify-between items-center mb-4">
           <div>
             {(() => {
@@ -338,7 +338,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             })()}
           </div>
         </div>
-        
+
         {(() => {
           const { price } = getEffectivePrice(product);
           if (price <= 0) {
@@ -351,21 +351,21 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             );
           }
           return (
-        <div className="flex space-x-3">
-          <button
-            onClick={() => handleAddToCart(product)}
-            className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2 font-semibold shadow-lg hover:shadow-xl"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            <span>Add to Cart</span>
-          </button>
-          <button
-            onClick={() => openWhatsApp(product.farmerWhatsapp)}
-            className="bg-green-500 text-white p-3 rounded-xl hover:bg-green-600 transition-all duration-300 shadow-lg hover:shadow-xl"
-          >
-            <MessageCircle className="h-5 w-5" />
-          </button>
-        </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => handleAddToCart(product)}
+                className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center justify-center space-x-2 font-semibold shadow-lg hover:shadow-xl"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span>Add to Cart</span>
+              </button>
+              <button
+                onClick={() => openWhatsApp(product.farmerWhatsapp)}
+                className="bg-green-500 text-white p-3 rounded-xl hover:bg-green-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </button>
+            </div>
           );
         })()}
       </div>
@@ -375,7 +375,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
   const renderProducts = () => (
     <div>
       {/* Search and Filters */}
-      <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl p-4 md:p-8 mb-8 border border-gray-100">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-2">
             <div className="relative">
@@ -389,7 +389,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
               />
             </div>
           </div>
-          
+
           <div>
             <select
               value={selectedCategory}
@@ -404,7 +404,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
               ))}
             </select>
           </div>
-          
+
           <div>
             <select
               value={selectedLocation}
@@ -419,7 +419,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
               ))}
             </select>
           </div>
-          
+
           <div>
             <select
               value={sortBy}
@@ -474,14 +474,14 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
           </div>
         </div>
       )}
-            
+
       {/* Products Grid */}
       <div>
         <h2 className="text-3xl font-bold mb-8 text-gray-900">
-          {searchTerm || selectedCategory || selectedLocation ? 'Search Results' : 'All Products'} 
+          {searchTerm || selectedCategory || selectedLocation ? 'Search Results' : 'All Products'}
           <span className="text-green-600">({filteredProducts.length})</span>
         </h2>
-        
+
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {filteredProducts.map(renderProductCard)}
@@ -549,7 +549,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
       {orders.length > 0 ? (
         <div className="space-y-6">
           {orders.map(order => (
-            <div key={order.id} className="bg-white rounded-2xl shadow-lg p-8">
+            <div key={order.id} className="bg-white rounded-2xl shadow-lg p-4 md:p-8">
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Order #{order.id.slice(-8)}</h3>
@@ -565,12 +565,12 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {order.items?.map((item: any, index: number) => (
                   <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                    <img 
-                      src={item.image} 
+                    <img
+                      src={item.image}
                       alt={item.cropName}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
@@ -582,7 +582,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border border-blue-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -594,19 +594,18 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
                     <p className="text-sm text-blue-800"><strong>⏰ Last Updated:</strong> {new Date().toLocaleString()}</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-blue-900 mb-3">📦 Order Tracking Progress</p>
                   <div className="relative">
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div
-                        className={`h-3 rounded-full transition-all duration-1000 ${
-                          (trackingStatuses[order.id] || order.status) === 'placed' ? 'bg-blue-500 w-1/4' :
+                        className={`h-3 rounded-full transition-all duration-1000 ${(trackingStatuses[order.id] || order.status) === 'placed' ? 'bg-blue-500 w-1/4' :
                           (trackingStatuses[order.id] || order.status) === 'processing' ? 'bg-yellow-500 w-2/4' :
-                          (trackingStatuses[order.id] || order.status) === 'shipped' ? 'bg-purple-500 w-3/4' :
-                          (trackingStatuses[order.id] || order.status) === 'delivered' ? 'bg-green-600 w-full' :
-                          'bg-gray-400 w-1/4'
-                        }`}
+                            (trackingStatuses[order.id] || order.status) === 'shipped' ? 'bg-purple-500 w-3/4' :
+                              (trackingStatuses[order.id] || order.status) === 'delivered' ? 'bg-green-600 w-full' :
+                                'bg-gray-400 w-1/4'
+                          }`}
                       ></div>
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 mt-2">
@@ -629,13 +628,13 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
                     </div>
                   </div>
                 </div>
-                
+
                 {(trackingStatuses[order.id] || order.status) === 'delivered' && (
                   <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
                     <p className="text-sm text-green-800 font-medium">🎉 Your order has been delivered! Thank you for choosing Farm2Consumer.</p>
                   </div>
                 )}
-                
+
                 {order.farmerOrders && order.farmerOrders.length > 1 && (
                   <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
                     <p className="text-sm text-yellow-800"><strong>💰 Payment Split:</strong> Distributed among {order.farmerOrders.length} farmers</p>
@@ -664,7 +663,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
   );
 
   const renderProfile = () => (
-    <div className="bg-white rounded-2xl shadow-xl p-8">
+    <div className="bg-white rounded-2xl shadow-xl p-4 md:p-8">
       <div className="flex justify-between items-center mb-8">
         <h3 className="text-2xl font-bold text-gray-900">My Profile</h3>
         {!editingProfile ? (
@@ -697,7 +696,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
           </div>
         )}
       </div>
-      
+
       <div className="space-y-4">
         <div className="flex items-center space-x-6">
           <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
@@ -719,11 +718,11 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             <p className="text-blue-600 font-semibold">Verified Consumer</p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
             <div className="bg-blue-100 p-3 rounded-lg">
-              <User className="h-6 w-6 text-blue-600" />
+              <UserIcon className="h-6 w-6 text-blue-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500 font-medium">Email Address</p>
@@ -739,7 +738,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
             <div className="bg-green-100 p-3 rounded-lg">
               <MessageCircle className="h-6 w-6 text-green-600" />
@@ -758,7 +757,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl md:col-span-2">
             <div className="bg-red-100 p-3 rounded-lg">
               <MapPin className="h-6 w-6 text-red-600" />
@@ -787,14 +786,14 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-12 space-y-4 lg:space-y-0">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
               Welcome back, <span className="text-green-600">{user.name || user.fullName}!</span>
             </h1>
             <p className="text-gray-600 text-lg">Discover fresh, organic produce from verified local farmers</p>
           </div>
           <button
             onClick={() => setShowCart(true)}
-            className="relative bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105"
+            className="relative bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 md:px-8 md:py-4 rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-300 flex items-center space-x-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105"
           >
             <ShoppingCart className="h-6 w-6" />
             <span className="font-semibold text-lg">My Cart</span>
@@ -805,29 +804,28 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
             )}
           </button>
         </div>
-        
+
         {/* Tab Navigation */}
-        <div className="flex space-x-2 bg-white p-2 rounded-2xl shadow-lg mb-8">
+        <div className="flex space-x-2 bg-white p-2 rounded-2xl shadow-lg mb-8 overflow-x-auto scrollbar-hide">
           {[
             { id: 'products', label: 'Shop Products', icon: ShoppingCart },
             { id: 'orders', label: 'Order History', icon: History },
-            { id: 'profile', label: 'My Profile', icon: User }
+            { id: 'profile', label: 'My Profile', icon: UserIcon }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-300 font-semibold ${
-                activeTab === tab.id
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 md:px-6 md:py-3 rounded-xl transition-all duration-300 font-semibold text-sm md:text-base whitespace-nowrap ${activeTab === tab.id
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
             >
               <tab.icon className="h-5 w-5" />
               <span>{tab.label}</span>
             </button>
           ))}
         </div>
-        
+
         {activeTab === 'products' && renderProducts()}
         {activeTab === 'orders' && renderOrderHistory()}
         {activeTab === 'profile' && renderProfile()}
@@ -837,13 +835,13 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
         <Cart
           userId={user.id}
           onClose={() => setShowCart(false)}
-          onCartUpdate={() => {
-            const updatedCart = getCart(user.id);
+          onCartUpdate={async () => {
+            const updatedCart = await getCart(user.id);
             setCart(updatedCart);
           }}
         />
       )}
-      
+
       {showChatbot && (
         <Chatbot
           userType="consumer"
@@ -853,7 +851,7 @@ const ConsumerDashboard: React.FC<ConsumerDashboardProps> = ({ user }) => {
 
       {/* Popup Notification */}
       {showPopup && (
-        <div 
+        <div
           className="fixed top-4 right-4 z-50 bg-white rounded-xl shadow-2xl border-l-4 border-green-500 p-4 max-w-sm animate-slide-in transform transition-all duration-300 hover:scale-105 cursor-pointer"
           onClick={() => {
             setShowPopup(false);

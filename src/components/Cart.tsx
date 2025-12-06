@@ -34,7 +34,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
         console.error('Error loading cart:', error);
       }
     };
-    
+
     loadCart();
   }, [userId]);
 
@@ -43,12 +43,12 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
       // Check stock availability
       const products = await getProducts();
       const product = products.find(p => p.id === productId);
-      
+
       if (product && newQuantity > product.availableQuantity) {
         notify(`Selected quantity is beyond the stock. Available: ${product.availableQuantity} kg`, { variant: 'warning' });
         return;
       }
-      
+
       if (newQuantity === 0) {
         await removeFromCart(userId, productId);
       } else {
@@ -71,10 +71,10 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
       notify('Please select a payment method', { variant: 'warning' });
       return;
     }
-    
+
     try {
       // Group items by farmer for split payment
-      const products = await getProducts();
+      /* const products = await getProducts();
       const farmerOrders = cartItems.reduce((orders, item) => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
@@ -93,9 +93,9 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           orders[farmerKey].totalAmount += item.pricePerKg * item.quantity;
         }
         return orders;
-      }, {});
-      
-      const orderData = {
+      }, {}); */
+
+      /* const orderData = {
         userId,
         items: cartItems,
         totalAmount: getTotalAmount(),
@@ -104,16 +104,16 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
         deliveryType,
         paymentMethod,
         timestamp: new Date().toISOString()
-      };
-      
+      }; */
+
       const order = await placeOrder(userId, cartItems, deliveryAddress, deliveryType);
       if (order) {
         setOrderPlaced(true);
         onCartUpdate();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error placing order:', error);
-      
+
       // Check if this is a review blocking error
       if (error.message && error.message.includes('consecutive large purchases')) {
         notify(error.message, { variant: 'error' });
@@ -147,8 +147,8 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           <div className="space-y-4 mb-6">
             {cartItems.map((item, index) => (
               <div key={`cart-item-${item.productId}-${index}`} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <img 
-                  src={item.image} 
+                <img
+                  src={item.image}
                   alt={item.cropName}
                   className="w-16 h-16 object-cover rounded"
                 />
@@ -192,7 +192,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
               </div>
             ))}
           </div>
-          
+
           <div className="border-t pt-4">
             <div className="flex justify-between items-center text-xl font-bold mb-4">
               <span>Total: ₹{getTotalAmount().toFixed(2)}</span>
@@ -225,7 +225,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             placeholder="Enter your delivery address"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Delivery Type
@@ -253,7 +253,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             </label>
           </div>
         </div>
-        
+
         {deliveryType === 'partner' && (
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-blue-800 mb-2">You will be redirected to our logistics partner</p>
@@ -265,7 +265,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             </button>
           </div>
         )}
-        
+
         <div className="flex space-x-2">
           <button
             onClick={() => setCurrentStep(1)}
@@ -288,13 +288,12 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
   const renderPayment = () => (
     <div>
       <h3 className="text-2xl font-bold mb-6">Choose Payment Method</h3>
-      
+
       {/* Payment Methods */}
       <div className="space-y-4 mb-6">
-        <div 
-          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-            paymentMethod === 'upi-app' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-          }`}
+        <div
+          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === 'upi-app' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+            }`}
           onClick={() => setPaymentMethod('upi-app')}
         >
           <div className="flex items-center space-x-3">
@@ -305,11 +304,10 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             </div>
           </div>
         </div>
-        
-        <div 
-          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-            paymentMethod === 'upi-id' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-          }`}
+
+        <div
+          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === 'upi-id' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+            }`}
           onClick={() => setPaymentMethod('upi-id')}
         >
           <div className="flex items-center space-x-3">
@@ -320,11 +318,10 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             </div>
           </div>
         </div>
-        
-        <div 
-          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-            paymentMethod === 'card' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-          }`}
+
+        <div
+          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+            }`}
           onClick={() => setPaymentMethod('card')}
         >
           <div className="flex items-center space-x-3">
@@ -335,11 +332,10 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             </div>
           </div>
         </div>
-        
-        <div 
-          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-            paymentMethod === 'netbanking' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-          }`}
+
+        <div
+          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${paymentMethod === 'netbanking' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+            }`}
           onClick={() => setPaymentMethod('netbanking')}
         >
           <div className="flex items-center space-x-3">
@@ -351,7 +347,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           </div>
         </div>
       </div>
-      
+
       {/* Payment Details Form */}
       {paymentMethod === 'upi-id' && (
         <div className="bg-gray-50 p-4 rounded-xl mb-6">
@@ -367,7 +363,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           />
         </div>
       )}
-      
+
       {paymentMethod === 'card' && (
         <div className="bg-gray-50 p-4 rounded-xl mb-6 space-y-4">
           <div>
@@ -422,7 +418,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           </div>
         </div>
       )}
-      
+
       {paymentMethod === 'netbanking' && (
         <div className="bg-gray-50 p-4 rounded-xl mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -443,14 +439,14 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           </select>
         </div>
       )}
-      
+
       {/* Order Summary */}
       <div className="bg-gray-50 p-4 rounded-xl mb-6">
         <h4 className="font-semibold mb-2">Order Summary</h4>
         {/* Group items by farmer */}
         {cartItems.length > 0 && (() => {
           // This will be populated when products are loaded
-          const farmerGroups = cartItems.reduce((groups, item) => {
+          const farmerGroups = cartItems.reduce<{ [key: string]: { farmerName: string; items: any[]; total: number } }>((groups, item) => {
             // Use the product data from the cart item if available
             const farmerKey = item.farmerId || 'unknown';
             if (!groups[farmerKey]) {
@@ -464,7 +460,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             groups[farmerKey].total += item.pricePerKg * item.quantity;
             return groups;
           }, {});
-          
+
           return Object.entries(farmerGroups).map(([farmerId, group]) => (
             <div key={farmerId} className="mb-4 p-3 bg-white rounded-lg border">
               <h5 className="font-semibold text-green-700 mb-2">From {group.farmerName}</h5>
@@ -483,7 +479,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             </div>
           ));
         })()}
-        
+
         <div className="border-t-2 mt-2 pt-2 font-bold text-lg">
           <div className="flex justify-between text-green-700">
             <span>Grand Total:</span>
@@ -491,7 +487,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
           </div>
         </div>
       </div>
-      
+
       <div className="space-y-6">
         <div className="bg-green-50 p-4 rounded-xl border border-green-200">
           <div className="flex items-center space-x-2">
@@ -502,7 +498,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
             🔒 Your payment will be automatically split between farmers. All transactions are encrypted and secure with 256-bit SSL.
           </p>
         </div>
-        
+
         <div className="flex space-x-4">
           <button
             onClick={() => setCurrentStep(2)}
@@ -555,7 +551,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold text-gray-900">Secure Checkout</h2>
             <button
@@ -565,7 +561,7 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
               <X className="h-6 w-6" />
             </button>
           </div>
-          
+
           {!orderPlaced && (
             <div className="flex items-center space-x-4 mb-8">
               {[
@@ -574,26 +570,24 @@ const Cart: React.FC<CartProps> = ({ userId, onClose, onCartUpdate }) => {
                 { num: 3, label: 'Payment' }
               ].map(step => (
                 <div key={step.num} className="flex items-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
-                    currentStep >= step.num ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= step.num ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'
+                    }`}>
                     {step.num}
                   </div>
-                  <span className={`ml-2 text-sm font-medium ${
-                    currentStep >= step.num ? 'text-green-600' : 'text-gray-500'
-                  }`}>
+                  <span className={`ml-2 text-sm font-medium ${currentStep >= step.num ? 'text-green-600' : 'text-gray-500'
+                    }`}>
                     {step.label}
                   </span>
-                  {step.num < 3 && <div className={`w-16 h-1 mx-4 rounded ${currentStep > step.num ? 'bg-green-600' : 'bg-gray-200'}`} />}
+                  {step.num < 3 && <div className={`w-8 md:w-16 h-1 mx-2 md:mx-4 rounded ${currentStep > step.num ? 'bg-green-600' : 'bg-gray-200'}`} />}
                 </div>
               ))}
             </div>
           )}
-          
+
           {orderPlaced ? renderOrderConfirmation() :
-           currentStep === 1 ? renderCart() :
-           currentStep === 2 ? renderDelivery() :
-           renderPayment()}
+            currentStep === 1 ? renderCart() :
+              currentStep === 2 ? renderDelivery() :
+                renderPayment()}
         </div>
       </div>
     </div>

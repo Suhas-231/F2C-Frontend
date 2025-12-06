@@ -1,7 +1,7 @@
 // MySQL database integration using API calls
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-interface User {
+export interface User {
   id: string;
   role: 'farmer' | 'consumer' | 'admin';
   name?: string;
@@ -15,7 +15,7 @@ interface User {
   createdAt?: string;
 }
 
-interface Product {
+export interface Product {
   id: string;
   farmerId: string;
   farmerName: string;
@@ -35,7 +35,7 @@ interface Product {
   createdAt?: string;
 }
 
-interface CartItem {
+export interface CartItem {
   id: string;
   userId: string;
   productId: string;
@@ -44,7 +44,7 @@ interface CartItem {
   pricePerKg: number;
 }
 
-interface Order {
+export interface Order {
   id: string;
   userId: string;
   consumerName: string;

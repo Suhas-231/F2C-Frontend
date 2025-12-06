@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Bell, TrendingUp, IndianRupee, Upload, ShoppingBag, MessageCircle, AlertCircle, Trash2, Edit3, XCircle, User, Save, X, Phone, Users, FileText, History } from 'lucide-react';
-import { addProduct, getProducts, getNotifications, markNotificationRead, getFarmerOrders, updateUserProfile, getFarmerCustomers, getCustomerOrders, saveCustomerNote, deleteCustomerNote, Customer } from '../utils/database';
+import { Plus, Package, Bell, TrendingUp, IndianRupee, Upload, ShoppingBag, MessageCircle, AlertCircle, Trash2, Edit3, XCircle, User as UserIcon, Save, X, Phone, Users, FileText, History } from 'lucide-react';
+import { addProduct, getProducts, getNotifications, markNotificationRead, getFarmerOrders, updateUserProfile, getFarmerCustomers, getCustomerOrders, saveCustomerNote, deleteCustomerNote, Customer, User, Product } from '../utils/database';
 import EXIF from 'exif-js';
 import Chatbot from './Chatbot';
 import notify from '../utils/notify';
@@ -21,7 +21,7 @@ interface UserNotification {
 }
 
 interface FarmerDashboardProps {
-  user: any;
+  user: User;
 }
 
 // Check if image contains geotag data (strict verification)
@@ -31,19 +31,19 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
     reader.onload = () => {
       const img = document.createElement('img');
       img.src = reader.result as string;
-      
+
       // Set timeout to prevent hanging
       const timeout = setTimeout(() => {
         console.warn('EXIF reading timeout');
-        resolve({ 
-          hasGeoTag: false, 
-          error: 'Geotag verification timeout. Please ensure your image contains GPS location data.' 
+        resolve({
+          hasGeoTag: false,
+          error: 'Geotag verification timeout. Please ensure your image contains GPS location data.'
         });
       }, 8000);
-      
+
       img.onload = () => {
         try {
-          EXIF.getData(img as any, function(this: any) {
+          EXIF.getData(img as any, function (this: any) {
             clearTimeout(timeout);
             try {
               // Get GPS coordinates - these are the primary indicators
@@ -51,21 +51,21 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
               const gpsLatitudeRef = EXIF.getTag(this, 'GPSLatitudeRef');
               const gpsLongitude = EXIF.getTag(this, 'GPSLongitude');
               const gpsLongitudeRef = EXIF.getTag(this, 'GPSLongitudeRef');
-              
+
               // Get all EXIF data for comprehensive checking
               const allExifData = EXIF.getAllTags(this);
               const gpsInfo = EXIF.getTag(this, 'GPS');
-              
+
               // Debug logging
               console.log('EXIF GPSLatitude:', gpsLatitude);
               console.log('EXIF GPSLongitude:', gpsLongitude);
               console.log('EXIF GPSLatitudeRef:', gpsLatitudeRef);
               console.log('EXIF GPSLongitudeRef:', gpsLongitudeRef);
               console.log('EXIF GPS Info:', gpsInfo);
-              
+
               // Strict check: Must have actual GPS coordinates
               let hasGeoTag = false;
-              
+
               // Primary check: Valid GPS coordinates exist
               if (gpsLatitude && gpsLongitude) {
                 // Verify coordinates are in valid format (array with numbers)
@@ -73,7 +73,7 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                   // Check if arrays contain valid numeric values
                   const latValid = gpsLatitude.length > 0 && gpsLatitude.some(v => typeof v === 'number');
                   const longValid = gpsLongitude.length > 0 && gpsLongitude.some(v => typeof v === 'number');
-                  
+
                   if (latValid && longValid) {
                     hasGeoTag = true;
                     console.log('✅ Valid GPS coordinates found');
@@ -84,12 +84,12 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                   console.log('✅ Valid GPS coordinates found (numeric format)');
                 }
               }
-              
+
               // Secondary check: GPS info object exists with location data
               if (!hasGeoTag && gpsInfo && typeof gpsInfo === 'object') {
                 // Check if GPS object has coordinate-related properties
                 const gpsKeys = Object.keys(gpsInfo);
-                const hasCoordinateKeys = gpsKeys.some(key => 
+                const hasCoordinateKeys = gpsKeys.some(key =>
                   key.includes('Latitude') || key.includes('Longitude') || key.includes('GPS')
                 );
                 if (hasCoordinateKeys) {
@@ -97,37 +97,37 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                   console.log('✅ GPS location data found in GPS object');
                 }
               }
-              
+
               // Tertiary check: Look for GPS Map Camera metadata patterns
               // GPS Map Camera apps often embed location in custom EXIF tags
               if (!hasGeoTag && allExifData) {
                 const exifKeys = Object.keys(allExifData);
                 // Check for location-related tags
-                const locationIndicators = exifKeys.filter(key => 
-                  key.toLowerCase().includes('gps') || 
+                const locationIndicators = exifKeys.filter(key =>
+                  key.toLowerCase().includes('gps') ||
                   key.toLowerCase().includes('location') ||
                   key.toLowerCase().includes('latitude') ||
                   key.toLowerCase().includes('longitude') ||
                   key.toLowerCase().includes('coordinate')
                 );
-                
+
                 if (locationIndicators.length > 0) {
                   // Verify that these tags actually contain meaningful data
                   const hasValidLocationData = locationIndicators.some(key => {
                     const value = allExifData[key];
                     // Check if value is not null/undefined and has meaningful content
-                    return value !== null && value !== undefined && 
-                           (typeof value === 'number' || 
-                            (Array.isArray(value) && value.length > 0) ||
-                            (typeof value === 'string' && value.length > 0));
+                    return value !== null && value !== undefined &&
+                      (typeof value === 'number' ||
+                        (Array.isArray(value) && value.length > 0) ||
+                        (typeof value === 'string' && value.length > 0));
                   });
-                  
+
                   if (hasValidLocationData) {
                     hasGeoTag = true;
                     console.log('✅ Location metadata found in EXIF tags:', locationIndicators);
                   }
                 }
-                
+
                 // Also check raw EXIF data for GPS IFD (Image File Directory)
                 // Some cameras store GPS data in a separate IFD
                 try {
@@ -139,8 +139,8 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                       // Check for coordinate data in GPS IFD
                       const hasCoordData = gpsKeys.some(key => {
                         const val = gpsIfd[key];
-                        return val !== null && val !== undefined && 
-                               (Array.isArray(val) || typeof val === 'number' || typeof val === 'string');
+                        return val !== null && val !== undefined &&
+                          (Array.isArray(val) || typeof val === 'number' || typeof val === 'string');
                       });
                       if (hasCoordData) {
                         hasGeoTag = true;
@@ -152,13 +152,13 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                   // Ignore errors accessing GPS IFD
                 }
               }
-              
+
               // Visual check: Try to detect GPS Map Camera overlay
               // Strong visual overlay detection (high confidence) indicates GPS Map Camera overlay
               // This helps identify GPS-geotagged images even when file content is binary/unreadable
               let hasVisualOverlay = false;
               let visualOverlayConfidence = 0;
-              
+
               if (!hasGeoTag) {
                 try {
                   const canvas = document.createElement('canvas');
@@ -167,7 +167,7 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                     canvas.width = img.width;
                     canvas.height = img.height;
                     ctx.drawImage(img, 0, 0);
-                    
+
                     // Focus ONLY on bottom 15% where GPS Map Camera overlays are placed
                     // GPS Map Camera overlays are typically:
                     // 1. Horizontal dark bands/boxes at the very bottom
@@ -180,25 +180,25 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                       width: img.width,
                       height: bottomRegionHeight
                     };
-                    
+
                     const imageData = ctx.getImageData(bottomRegion.x, bottomRegion.y, bottomRegion.width, bottomRegion.height);
                     const totalPixels = imageData.data.length / 4;
-                    
+
                     // Analyze bottom region for GPS overlay characteristics
                     let veryDarkPixelCount = 0; // Very dark background pixels
                     let darkPixelCount = 0;
                     let lightPixelCount = 0; // Light text pixels
                     let horizontalBandCount = 0; // Horizontal dark bands (typical of GPS overlays)
-                    
+
                     // Check for horizontal bands (GPS overlays have horizontal dark bands)
                     const rowHeight = Math.floor(bottomRegion.height / 10); // Divide into 10 horizontal bands
                     const darkBandThreshold = 0.4; // 40% of row must be dark
-                    
+
                     for (let band = 0; band < 10; band++) {
                       let bandDarkCount = 0;
                       const bandStartY = band * rowHeight;
                       const bandEndY = Math.min((band + 1) * rowHeight, bottomRegion.height);
-                      
+
                       for (let y = bandStartY; y < bandEndY; y++) {
                         for (let x = 0; x < bottomRegion.width; x++) {
                           const pixelIndex = (y * bottomRegion.width + x) * 4;
@@ -206,26 +206,26 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                           const g = imageData.data[pixelIndex + 1];
                           const b = imageData.data[pixelIndex + 2];
                           const brightness = (r + g + b) / 3;
-                          
+
                           if (brightness < 50) {
                             bandDarkCount++;
                           }
                         }
                       }
-                      
+
                       const bandDarkRatio = bandDarkCount / (bottomRegion.width * (bandEndY - bandStartY));
                       if (bandDarkRatio > darkBandThreshold) {
                         horizontalBandCount++;
                       }
                     }
-                    
+
                     // Analyze all pixels in bottom region
                     for (let i = 0; i < imageData.data.length; i += 4) {
                       const r = imageData.data[i];
                       const g = imageData.data[i + 1];
                       const b = imageData.data[i + 2];
                       const brightness = (r + g + b) / 3;
-                      
+
                       // Very dark pixels (overlay background)
                       if (brightness < 30) {
                         veryDarkPixelCount++;
@@ -236,36 +236,36 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                         lightPixelCount++; // Light text on dark background
                       }
                     }
-                    
+
                     const veryDarkRatio = veryDarkPixelCount / totalPixels;
                     const darkRatio = darkPixelCount / totalPixels;
                     const lightRatio = lightPixelCount / totalPixels;
                     const contrastRatio = lightRatio > 0 && darkRatio > 0 ? (lightRatio + darkRatio) : 0;
-                    
+
                     // STRICT criteria for GPS overlay detection:
                     // 1. Must have significant very dark regions (overlay background)
                     // 2. Must have horizontal band patterns (typical of GPS overlays)
                     // 3. Must have contrast (dark background + light text)
                     // 4. High threshold to avoid false positives from regular image content
-                    
+
                     // More balanced thresholds - strict enough to reject false positives but lenient for real GPS overlays
                     const hasStrongDarkBackground = veryDarkRatio > 0.10 && darkRatio > 0.20; // Lowered from 0.15/0.25
                     const hasModerateDarkBackground = veryDarkRatio > 0.05 || darkRatio > 0.15; // Moderate dark region
                     const hasHorizontalBands = horizontalBandCount >= 1; // At least 1 dark horizontal band (lowered from 2)
                     const hasTextContrast = contrastRatio > 0.08 && lightRatio > 0.03; // Lowered thresholds
-                    
+
                     // Calculate confidence score with more flexible criteria
                     if (hasStrongDarkBackground) visualOverlayConfidence += 3;
                     else if (hasModerateDarkBackground) visualOverlayConfidence += 1; // Partial credit for moderate dark
-                    
+
                     if (hasHorizontalBands) {
                       visualOverlayConfidence += 2;
                       if (horizontalBandCount >= 2) visualOverlayConfidence += 1; // Bonus for multiple bands
                     }
-                    
+
                     if (hasTextContrast) visualOverlayConfidence += 2;
                     if (veryDarkRatio > 0.20) visualOverlayConfidence += 1; // Extra dark background (lowered from 0.25)
-                    
+
                     // Lowered threshold from 5 to 3 - accept if we have reasonable indicators
                     // This allows GPS Map Camera images with overlays to pass while still rejecting false positives
                     if (visualOverlayConfidence >= 3) {
@@ -283,7 +283,7 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                   console.warn('Canvas detection error:', canvasError);
                 }
               }
-              
+
               // Final resolution: Check file content for GPS data
               // Accept if we find GPS indicators in file content (whether visual overlay detected or not)
               if (hasGeoTag) {
@@ -299,7 +299,7 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                     // GPS Map Camera data can be embedded anywhere in the file
                     const fileSize = uint8Array.length;
                     const checkSize = Math.min(fileSize, 500000); // Check up to 500KB
-                    
+
                     // Read from multiple sections: start, middle sections, and end
                     const sections: string[] = [];
                     const numSections = 5;
@@ -317,11 +317,11 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                       sections.push(section);
                     }
                     const fileString = sections.join(' ');
-                    
+
                     // Debug: Log a sample of what we found
                     const sample = fileString.substring(0, 500).replace(/\s+/g, ' ');
                     console.log('📄 File content sample (first 500 chars):', sample);
-                    
+
                     // Very flexible location patterns - look for GPS data in many formats
                     const locationPatterns = [
                       /GPS\s*Map\s*Camera/i, // GPS Map Camera app signature (strongest indicator)
@@ -338,20 +338,20 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                       /Plus\s*Code/i, // "Plus Code" from GPS Map Camera
                       /GMT\s*\+/i, // Timezone indicator
                     ];
-                    
+
                     const matches = locationPatterns.filter(pattern => pattern.test(fileString));
                     const hasGPSMapCamera = /GPS\s*Map\s*Camera/i.test(fileString);
-                    
+
                     // Look for coordinate patterns - very flexible
                     // Find decimal numbers that look like coordinates
                     // Pattern: 1-3 digits, decimal point, 1-8 digits (e.g., "13.053006", "77.718094")
                     const coordinatePattern = /[\d]{1,3}\.[\d]{1,8}/g;
                     const allNumbers = fileString.match(coordinatePattern) || [];
-                    
+
                     // Also look for coordinates without word boundaries (might be embedded in text)
                     const allNumbers2 = fileString.match(/[\d]+\.[\d]+/g) || [];
                     const combinedNumbers = [...new Set([...allNumbers, ...allNumbers2])]; // Remove duplicates
-                    
+
                     // Filter to likely coordinates - be very lenient
                     // Accept any decimal number that could be a coordinate (0-180 range)
                     const likelyCoordinates = combinedNumbers.filter(num => {
@@ -367,20 +367,20 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                         return false;
                       }
                     });
-                    
+
                     // Check for Lat/Long labels
                     const hasLat = /Lat/i.test(fileString);
                     const hasLong = /Long/i.test(fileString);
                     const hasLatLongLabels = hasLat && hasLong;
-                    
+
                     // Check if we have coordinates near Lat/Long text
                     // Look for patterns like "Lat 13.0530" or "13.0530 Long"
                     const hasCoordinatePattern = (hasLat || hasLong) && likelyCoordinates.length >= 1;
                     const hasTwoCoordinates = likelyCoordinates.length >= 2;
-                    
+
                     const hasLocationText = /Location\s*[:\s]*[A-Z][a-z]+/i.test(fileString);
                     const hasLocationName = /Bengaluru|Karnataka|India|City|State|Country/i.test(fileString);
-                    
+
                     // Debug logging
                     console.log('🔍 GPS Detection Results:');
                     console.log(`   GPS Map Camera: ${hasGPSMapCamera}`);
@@ -390,7 +390,7 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                     console.log(`   Has Lat: ${hasLat}, Has Long: ${hasLong}`);
                     console.log(`   Has location text: ${hasLocationText || hasLocationName}`);
                     console.log(`   Matched patterns:`, matches.map(m => m.toString()).slice(0, 5));
-                    
+
                     // Very lenient matching - accept if we find ANY GPS indicators:
                     // Option 1: Strong visual overlay detected (confidence >= 5) - GPS Map Camera overlays are visible
                     // Option 2: GPS Map Camera signature in file (strongest - accept immediately)
@@ -402,44 +402,44 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                     // Option 8: Plus Code or GMT indicators (GPS Map Camera features)
                     const hasPlusCode = /Plus\s*Code/i.test(fileString);
                     const hasGMT = /GMT\s*\+/i.test(fileString);
-                    
+
                     // If visual overlay was detected, accept it
                     // GPS Map Camera apps add visible overlays with location data - if we can see it, it's geotagged
                     // We set hasVisualOverlay = true when confidence >= 3, so if it's true, we should accept it
                     // High confidence (>= 5) is even stronger evidence
                     const strongVisualOverlay = hasVisualOverlay; // Accept if visual overlay was detected (confidence >= 3)
                     const veryStrongVisualOverlay = hasVisualOverlay && visualOverlayConfidence >= 5; // Extra confidence for high scores
-                    
+
                     // Debug: Log visual overlay status
                     console.log(`🔍 Visual Overlay Check: hasVisualOverlay=${hasVisualOverlay}, confidence=${visualOverlayConfidence}`);
                     console.log(`🔍 Visual Overlay Decision: strongVisualOverlay=${strongVisualOverlay}, veryStrongVisualOverlay=${veryStrongVisualOverlay}`);
-                    
+
                     const shouldAccept = strongVisualOverlay || // Strong visual overlay = GPS Map Camera image
-                                       hasGPSMapCamera || 
-                                       hasLocationName || // Location names are strong indicators
-                                       hasPlusCode || // Plus Code is GPS Map Camera feature
-                                       (hasTwoCoordinates && hasLatLongLabels) ||
-                                       (hasCoordinatePattern && (hasLocationText || hasLocationName)) ||
-                                       (likelyCoordinates.length >= 1 && (hasLocationText || hasLocationName)) ||
-                                       (likelyCoordinates.length >= 1 && (hasLat || hasLong)) ||
-                                       matches.length >= 2 ||
-                                       (hasGMT && (hasLat || hasLong || likelyCoordinates.length >= 1));
-                    
+                      hasGPSMapCamera ||
+                      hasLocationName || // Location names are strong indicators
+                      hasPlusCode || // Plus Code is GPS Map Camera feature
+                      (hasTwoCoordinates && hasLatLongLabels) ||
+                      (hasCoordinatePattern && (hasLocationText || hasLocationName)) ||
+                      (likelyCoordinates.length >= 1 && (hasLocationText || hasLocationName)) ||
+                      (likelyCoordinates.length >= 1 && (hasLat || hasLong)) ||
+                      matches.length >= 2 ||
+                      (hasGMT && (hasLat || hasLong || likelyCoordinates.length >= 1));
+
                     console.log(`🔍 Acceptance Check: shouldAccept=${shouldAccept}, strongVisualOverlay=${strongVisualOverlay}, fileContentMatches=${matches.length}`);
-                    
+
                     if (shouldAccept) {
                       console.log('✅ GPS location data FOUND');
                       const reason = strongVisualOverlay ? `Visual overlay detected (confidence: ${visualOverlayConfidence}) - GPS Map Camera overlay visible` :
-                                    hasGPSMapCamera ? 'GPS Map Camera signature' : 
-                                    hasLocationName ? 'Location name found' :
-                                    hasPlusCode ? 'Plus Code found' :
-                                    hasTwoCoordinates && hasLatLongLabels ? 'Coordinates with Lat/Long labels' :
-                                    hasCoordinatePattern && (hasLocationText || hasLocationName) ? 'Coordinate pattern + location' :
-                                    likelyCoordinates.length >= 1 && (hasLocationText || hasLocationName) ? 'Coordinate + location text' :
+                        hasGPSMapCamera ? 'GPS Map Camera signature' :
+                          hasLocationName ? 'Location name found' :
+                            hasPlusCode ? 'Plus Code found' :
+                              hasTwoCoordinates && hasLatLongLabels ? 'Coordinates with Lat/Long labels' :
+                                hasCoordinatePattern && (hasLocationText || hasLocationName) ? 'Coordinate pattern + location' :
+                                  likelyCoordinates.length >= 1 && (hasLocationText || hasLocationName) ? 'Coordinate + location text' :
                                     likelyCoordinates.length >= 1 && (hasLat || hasLong) ? 'Coordinate + Lat/Long label' :
-                                    matches.length >= 2 ? 'Multiple pattern matches' :
-                                    hasGMT && (hasLat || hasLong || likelyCoordinates.length >= 1) ? 'GMT + GPS indicators' :
-                                    'GPS indicators found';
+                                      matches.length >= 2 ? 'Multiple pattern matches' :
+                                        hasGMT && (hasLat || hasLong || likelyCoordinates.length >= 1) ? 'GMT + GPS indicators' :
+                                          'GPS indicators found';
                       console.log(`   Reason: ${reason}`);
                       resolve({ hasGeoTag: true });
                     } else {
@@ -450,68 +450,68 @@ const checkImageGeoTag = (file: File): Promise<{ hasGeoTag: boolean; error?: str
                       if (hasVisualOverlay && visualOverlayConfidence < 5) {
                         console.log(`   ⚠️ Visual overlay detected but confidence too low (${visualOverlayConfidence} < 5)`);
                       }
-                      resolve({ 
-                        hasGeoTag: false, 
-                        error: 'No GPS location data found in image. Please upload an image taken with GPS-enabled camera or GPS Map Camera app that includes location metadata.' 
+                      resolve({
+                        hasGeoTag: false,
+                        error: 'No GPS location data found in image. Please upload an image taken with GPS-enabled camera or GPS Map Camera app that includes location metadata.'
                       });
                     }
                   } catch (fileReadError) {
                     console.warn('File string search error:', fileReadError);
-                    resolve({ 
-                      hasGeoTag: false, 
-                      error: 'No GPS location data found in image. Please upload an image taken with GPS-enabled camera or GPS Map Camera app that includes location metadata.' 
+                    resolve({
+                      hasGeoTag: false,
+                      error: 'No GPS location data found in image. Please upload an image taken with GPS-enabled camera or GPS Map Camera app that includes location metadata.'
                     });
                   }
                 }).catch(() => {
-                  resolve({ 
-                    hasGeoTag: false, 
-                    error: 'No GPS location data found in image. Please upload an image taken with GPS-enabled camera or GPS Map Camera app that includes location metadata.' 
+                  resolve({
+                    hasGeoTag: false,
+                    error: 'No GPS location data found in image. Please upload an image taken with GPS-enabled camera or GPS Map Camera app that includes location metadata.'
                   });
                 });
               }
             } catch (error) {
               clearTimeout(timeout);
               console.error('Error reading EXIF tags:', error);
-              resolve({ 
-                hasGeoTag: false, 
-                error: 'Error reading image metadata. Please ensure your image contains GPS location data.' 
+              resolve({
+                hasGeoTag: false,
+                error: 'Error reading image metadata. Please ensure your image contains GPS location data.'
               });
             }
           });
         } catch (error) {
           clearTimeout(timeout);
           console.error('Error getting EXIF data:', error);
-          resolve({ 
-            hasGeoTag: false, 
-            error: 'Failed to read image metadata. Please upload a geotagged image with GPS location data.' 
+          resolve({
+            hasGeoTag: false,
+            error: 'Failed to read image metadata. Please upload a geotagged image with GPS location data.'
           });
         }
       };
-      
+
       img.onerror = () => {
         clearTimeout(timeout);
         console.error('Error loading image');
-        resolve({ 
-          hasGeoTag: false, 
-          error: 'Failed to load image. Please try a different image file.' 
+        resolve({
+          hasGeoTag: false,
+          error: 'Failed to load image. Please try a different image file.'
         });
       };
     };
-    
+
     reader.onerror = () => {
       console.error('Error reading file');
-      resolve({ 
-        hasGeoTag: false, 
-        error: 'Error reading image file. Please try again.' 
+      resolve({
+        hasGeoTag: false,
+        error: 'Error reading image file. Please try again.'
       });
     };
-    
+
     reader.readAsDataURL(file);
   });
 };
 
 // Calculate effective price with 20% discount every 20 hours
-const getEffectivePrice = (product: any) => {
+const getEffectivePrice = (product: Product) => {
   if (!product || !product.createdAt) {
     return { price: 0, intervals: 0 };
   }
@@ -520,21 +520,21 @@ const getEffectivePrice = (product: any) => {
   const created = new Date(product.createdAt);
   const now = new Date();
   const hoursSince = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
-  
+
   // Calculate discount: 20% off every 20 hours
   const intervals = Math.max(0, Math.floor(hoursSince / 20));
   const multiplier = Math.pow(0.8, intervals); // 20% off per 20h interval
-  
+
   // Base price with 2% commission
   const baseWithCommission = Number(product.pricePerKg) * 1.02;
   const effectivePrice = Math.max(0, Math.round(baseWithCommission * multiplier));
-  
+
   return { price: effectivePrice, intervals };
 };
 
 const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -562,10 +562,10 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [editingNote, setEditingNote] = useState<string>('');
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<{id: string, name: string, quantity: number} | null>(null);
+  const [editingProduct, setEditingProduct] = useState<{ id: string, name: string, quantity: number } | null>(null);
 
   const cropCategories = ['vegetables', 'fruits', 'grains', 'pulses'];
-  
+
   const seasonalOptions = [
     { value: '1,2,3,4,5,6,7,8,9,10,11,12', label: 'Year-round (All months)' },
     { value: '12,1,2', label: 'Winter (Dec-Feb)' },
@@ -606,15 +606,15 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
 
   const handleSaveNote = async () => {
     if (!selectedCustomer) return;
-    
+
     try {
       const success = await saveCustomerNote(user.id, selectedCustomer.id, editingNote);
       if (success) {
         notify('Note saved successfully', { variant: 'success' });
         // Update customer in list
-        setCustomers(customers.map(c => 
-          c.id === selectedCustomer.id 
-            ? { ...c, note: editingNote } 
+        setCustomers(customers.map(c =>
+          c.id === selectedCustomer.id
+            ? { ...c, note: editingNote }
             : c
         ));
         setSelectedCustomer({ ...selectedCustomer, note: editingNote });
@@ -629,7 +629,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
 
   const handleDeleteNote = async () => {
     if (!selectedCustomer) return;
-    
+
     if (window.confirm('Are you sure you want to delete this note?')) {
       try {
         const success = await deleteCustomerNote(user.id, selectedCustomer.id);
@@ -637,9 +637,9 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           notify('Note deleted successfully', { variant: 'success' });
           setEditingNote('');
           // Update customer in list
-          setCustomers(customers.map(c => 
-            c.id === selectedCustomer.id 
-              ? { ...c, note: undefined } 
+          setCustomers(customers.map(c =>
+            c.id === selectedCustomer.id
+              ? { ...c, note: undefined }
               : c
           ));
           setSelectedCustomer({ ...selectedCustomer, note: undefined });
@@ -666,7 +666,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           console.warn('Failed to load products (backend may be down):', error);
           setProducts([]); // Set empty array as fallback
         }
-        
+
         // Try to load notifications with error handling
         try {
           const response = await getNotifications(user.id);
@@ -681,7 +681,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           console.warn('Failed to load notifications (backend may be down):', error);
           setNotifications([]); // Set empty array as fallback
         }
-        
+
         // Try to load orders with error handling
         try {
           const farmerOrders: any[] = await getFarmerOrders(user.id);
@@ -723,7 +723,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
         console.error('Error loading farmer data:', error);
       }
     };
-    
+
     loadData();
     checkBackendStatus();
   }, [user.id]);
@@ -754,8 +754,8 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
         setProducts(farmerProducts);
         // If products count has decreased, check notifications for zero-price removals
         if (farmerProducts.length < products.length) {
-          const newNotifs = farmerNotifications.filter(n => 
-            n.message.includes('automatically removed') && 
+          const newNotifs = farmerNotifications.filter(n =>
+            n.message.includes('automatically removed') &&
             !n.read &&
             new Date(n.timestamp) > new Date(Date.now() - 5000) // Only show notifications from last 5 seconds
           );
@@ -768,17 +768,17 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
         // Don't clear existing data, just skip this refresh
       }
     }, 5000); // Refresh every 5 seconds
-    
+
     return () => clearInterval(interval);
   }, [user.id]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setImageError('');
-    
+
     // Clear any previously selected image
     setProductForm(prev => ({ ...prev, image: '' }));
-    
+
     if (file) {
       // Basic file validations
       if (file.size > 5 * 1024 * 1024) {
@@ -789,11 +789,11 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
         setImageError('Please select a valid image file');
         return;
       }
-      
+
       // Check if image has geotag - STRICT VERIFICATION
       try {
         const result = await checkImageGeoTag(file);
-        
+
         if (!result.hasGeoTag) {
           // Reject image - no GPS data found
           setImageError(result.error || 'Image does not contain GPS location data. Please upload a geotagged image taken with GPS-enabled camera or GPS Map Camera app.');
@@ -803,7 +803,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           // GPS data found - proceed with image upload
           console.log('✅ GPS location verified in image');
           setImageError(''); // Clear any previous errors
-          
+
           // Save image if it passes all checks
           const reader = new FileReader();
           reader.onload = (event) => {
@@ -836,7 +836,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
       });
-      
+
       if (response.ok) {
         setBackendStatus('connected');
         console.log('✅ Backend is connected');
@@ -855,12 +855,12 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
       notify('Please fill all required fields', { variant: 'warning' });
       return;
     }
-    
+
     if (!productForm.image) {
       notify('Please upload a product image. Image upload is mandatory.', { variant: 'warning' });
       return;
     }
-    
+
     if (imageError) {
       notify('Please fix the image error before proceeding. Image must contain GPS location data (geotagged).', { variant: 'error' });
       return;
@@ -974,10 +974,10 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setProducts(prev => prev.map(p => 
-            p.id === editingProduct.id 
-            ? { ...p, availableQuantity: editingProduct.quantity }
-            : p
+          setProducts(prev => prev.map(p =>
+            p.id === editingProduct.id
+              ? { ...p, availableQuantity: editingProduct.quantity }
+              : p
           ));
           setEditingProduct(null);
           notify('Quantity updated successfully', { variant: 'success' });
@@ -1033,7 +1033,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -1045,7 +1045,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -1057,7 +1057,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl shadow-lg text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -1070,8 +1070,8 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           </div>
         </div>
       </div>
-      
-      <div className="bg-white rounded-2xl shadow-xl p-8">
+
+      <div className="bg-white rounded-2xl shadow-xl p-4 md:p-8">
         <div className="flex items-center space-x-3 mb-6">
           <Bell className="h-6 w-6 text-blue-600" />
           <h3 className="text-2xl font-bold text-gray-900">Recent Activity</h3>
@@ -1080,19 +1080,18 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           {notifications.slice(0, 5).map(notification => {
             const isDeliveryNotification = notification.message.includes('delivered');
             const isNewOrderNotification = notification.message.includes('new order');
-            
+
             return (
               <div
                 key={notification.id}
-                className={`p-4 rounded-xl cursor-pointer transition-all duration-300 ${
-                  notification.read 
-                    ? 'bg-gray-50 hover:bg-gray-100' 
-                    : isDeliveryNotification 
-                      ? 'bg-green-50 border-l-4 border-green-500 hover:bg-green-100' 
-                      : isNewOrderNotification
-                        ? 'bg-blue-50 border-l-4 border-blue-500 hover:bg-blue-100'
-                        : 'bg-yellow-50 border-l-4 border-yellow-500 hover:bg-yellow-100'
-                }`}
+                className={`p-4 rounded-xl cursor-pointer transition-all duration-300 ${notification.read
+                  ? 'bg-gray-50 hover:bg-gray-100'
+                  : isDeliveryNotification
+                    ? 'bg-green-50 border-l-4 border-green-500 hover:bg-green-100'
+                    : isNewOrderNotification
+                      ? 'bg-blue-50 border-l-4 border-blue-500 hover:bg-blue-100'
+                      : 'bg-yellow-50 border-l-4 border-yellow-500 hover:bg-yellow-100'
+                  }`}
                 onClick={() => handleNotificationClick(notification.id)}
               >
                 <div className="flex items-start space-x-3">
@@ -1186,7 +1185,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           )}
         </div>
       </div>
-      
+
       {showAddProduct && (
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <h4 className="text-xl font-bold mb-6 text-gray-900">Add New Product</h4>
@@ -1208,7 +1207,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 ))}
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Crop Name
@@ -1221,7 +1220,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 placeholder="Enter crop name (e.g., tomato, wheat, rice)"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Price per KG (₹)
@@ -1234,7 +1233,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 placeholder="Enter price"
               />
             </div>
-            
+
             <div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1257,9 +1256,9 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                     <span className="text-gray-700">Upload Image (Required)</span>
                   </label>
                   {productForm.image && (
-                    <img 
-                      src={productForm.image} 
-                      alt="Preview" 
+                    <img
+                      src={productForm.image}
+                      alt="Preview"
                       className="w-16 h-16 object-cover rounded-lg border"
                     />
                   )}
@@ -1273,8 +1272,8 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                   </div>
                 )}
                 <p className="text-xs text-gray-500 mt-2">
-                  <strong>Required:</strong> Upload a clear photo of your crop with GPS location data (geotagged). 
-                  Use a GPS-enabled camera or GPS Map Camera app to capture images with location metadata. 
+                  <strong>Required:</strong> Upload a clear photo of your crop with GPS location data (geotagged).
+                  Use a GPS-enabled camera or GPS Map Camera app to capture images with location metadata.
                   Maximum file size: 5MB.
                 </p>
                 {!imageError && productForm.image && (
@@ -1285,7 +1284,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 )}
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Available Quantity (KG)
@@ -1298,7 +1297,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 placeholder="Enter quantity"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Seasonal Product
@@ -1312,7 +1311,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 <option value="false">No - Year-round</option>
               </select>
             </div>
-            
+
             {productForm.isSeasonal && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1332,7 +1331,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
               </div>
             )}
           </div>
-          
+
           <div className="flex justify-end space-x-4 mt-8">
             <button
               onClick={() => setShowAddProduct(false)}
@@ -1349,12 +1348,12 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           </div>
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {products.map(product => (
           <div key={product.id} className={`group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform ${editMode ? '' : 'hover:-translate-y-2'}`}>
-            <img 
-              src={product.image} 
+            <img
+              src={product.image}
               alt={product.cropName}
               className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
             />
@@ -1387,9 +1386,9 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                   <span className="text-xs text-gray-500">Listed today</span>
                 </div>
               </div>
-              
+
               <h4 className="font-bold text-xl mb-2 text-gray-900">{product.cropName}</h4>
-              
+
               <div className="flex justify-between items-center mt-4">
                 <div>
                   <span className="text-2xl font-bold text-green-600">₹{product.pricePerKg}</span>
@@ -1420,10 +1419,10 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
       {/* Quantity Edit Modal */}
       {editingProduct && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-96">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm mx-4">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Update Quantity</h3>
             <p className="text-gray-600 mb-4">Editing quantity for: {editingProduct.name}</p>
-            
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 New Quantity (KG)
@@ -1432,13 +1431,13 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 type="number"
                 min="0"
                 value={editingProduct.quantity}
-                onChange={(e) => setEditingProduct(prev => 
+                onChange={(e) => setEditingProduct(prev =>
                   prev ? { ...prev, quantity: parseInt(e.target.value) || 0 } : prev
                 )}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setEditingProduct(null)}
@@ -1456,19 +1455,19 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           </div>
         </div>
       )}
-      
+
       {products.length === 0 && !showAddProduct && (
         <div className="text-center py-16">
           <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md mx-auto">
             <Package className="h-20 w-20 text-gray-300 mx-auto mb-6" />
             <h3 className="text-2xl font-bold text-gray-900 mb-4">No products yet</h3>
             <p className="text-gray-600 mb-8">Start selling your fresh produce by adding your first product</p>
-          <button
-            onClick={() => setShowPriceInfo(true)}
+            <button
+              onClick={() => setShowPriceInfo(true)}
               className="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 font-semibold shadow-lg"
-          >
-            Add Your First Product
-          </button>
+            >
+              Add Your First Product
+            </button>
           </div>
         </div>
       )}
@@ -1570,7 +1569,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
   );
 
   const renderProfile = () => (
-    <div className="bg-white rounded-2xl shadow-xl p-8">
+    <div className="bg-white rounded-2xl shadow-xl p-4 md:p-8">
       <div className="flex justify-between items-center mb-8">
         <h3 className="text-2xl font-bold text-gray-900">My Profile</h3>
         {!editingProfile ? (
@@ -1603,7 +1602,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           </div>
         )}
       </div>
-      
+
       <div className="space-y-4">
         <div className="flex items-center space-x-6">
           <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
@@ -1626,11 +1625,11 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
             <p className="text-green-600 font-semibold">Verified Farmer</p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
             <div className="bg-blue-100 p-3 rounded-lg">
-              <User className="h-6 w-6 text-blue-600" />
+              <UserIcon className="h-6 w-6 text-blue-600" />
             </div>
             <div>
               <p className="text-sm text-gray-500 font-medium">Email Address</p>
@@ -1646,7 +1645,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
             <div className="bg-green-100 p-3 rounded-lg">
               <MessageCircle className="h-6 w-6 text-green-600" />
@@ -1665,7 +1664,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
             <div className="bg-green-100 p-3 rounded-lg">
               <MessageCircle className="h-6 w-6 text-green-600" />
@@ -1684,10 +1683,10 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl md:col-span-2">
             <div className="bg-red-100 p-3 rounded-lg">
-              <User className="h-6 w-6 text-red-600" />
+              <UserIcon className="h-6 w-6 text-red-600" />
             </div>
             <div className="flex-1">
               <p className="text-sm text-gray-500 font-medium">Farm Address</p>
@@ -1717,11 +1716,11 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           Total Orders: <span className="font-semibold text-green-600">{orders.length}</span>
         </div>
       </div>
-      
+
       {orders.length > 0 ? (
         <div className="space-y-6">
           {orders.map(order => (
-            <div key={order.id} className="bg-white rounded-2xl shadow-lg p-8">
+            <div key={order.id} className="bg-white rounded-2xl shadow-lg p-4 md:p-8">
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Order #{order.id.slice(-8)}</h3>
@@ -1731,25 +1730,24 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-green-600">₹{order.totalAmount?.toFixed(2)}</p>
                   <div className="flex items-center space-x-2 mt-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                       order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                      order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'placed' ? 'bg-blue-100 text-blue-800' :
-                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                          order.status === 'placed' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                      }`}>
                       {order.status}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {order.items?.map((item: any, index: number) => (
                   <div key={index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                    <img 
-                      src={item.image} 
+                    <img
+                      src={item.image}
                       alt={item.cropName}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
@@ -1761,7 +1759,7 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -1771,28 +1769,27 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                   <div>
                     <p className="text-sm text-green-800"><strong>📞 Status:</strong> {
                       order.status === 'placed' ? 'Order confirmed and received' :
-                      order.status === 'processing' ? 'Preparing your order' :
-                      order.status === 'shipped' ? 'Order is on the way' :
-                      order.status === 'delivered' ? 'Order successfully delivered' :
-                      order.status === 'cancelled' ? 'Order has been cancelled' :
-                      'Order status unknown'
+                        order.status === 'processing' ? 'Preparing your order' :
+                          order.status === 'shipped' ? 'Order is on the way' :
+                            order.status === 'delivered' ? 'Order successfully delivered' :
+                              order.status === 'cancelled' ? 'Order has been cancelled' :
+                                'Order status unknown'
                     }</p>
                     <p className="text-sm text-green-800"><strong>⏰ Last Updated:</strong> {new Date().toLocaleString()}</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-green-900 mb-3">📦 Order Progress</p>
                   <div className="relative">
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div
-                        className={`h-3 rounded-full transition-all duration-1000 ${
-                          order.status === 'placed' ? 'bg-blue-500 w-1/4' :
+                        className={`h-3 rounded-full transition-all duration-1000 ${order.status === 'placed' ? 'bg-blue-500 w-1/4' :
                           order.status === 'processing' ? 'bg-yellow-500 w-2/4' :
-                          order.status === 'shipped' ? 'bg-purple-500 w-3/4' :
-                          order.status === 'delivered' ? 'bg-green-600 w-full' :
-                          'bg-gray-400 w-1/4'
-                        }`}
+                            order.status === 'shipped' ? 'bg-purple-500 w-3/4' :
+                              order.status === 'delivered' ? 'bg-green-600 w-full' :
+                                'bg-gray-400 w-1/4'
+                          }`}
                       ></div>
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 mt-2">
@@ -1815,13 +1812,13 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                     </div>
                   </div>
                 </div>
-                
+
                 {order.status === 'delivered' && (
                   <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
                     <p className="text-sm text-green-800 font-medium">🎉 Order delivered successfully! Payment will be processed within 7 days.</p>
                   </div>
                 )}
-                
+
                 {order.farmerOrders && order.farmerOrders.length > 1 && (
                   <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
                     <p className="text-sm text-yellow-800"><strong>💰 Payment Split:</strong> This order includes products from {order.farmerOrders.length} farmers</p>
@@ -1855,19 +1852,18 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
         <div className="mb-12">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
                 Welcome back, <span className="text-green-600">{user.name || user.fullName}!</span>
               </h1>
               <p className="text-gray-600 text-lg">Manage your farm products, track orders, and grow your business</p>
             </div>
             <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${
-                backendStatus === 'connected' ? 'bg-green-500' : 
+              <div className={`w-3 h-3 rounded-full ${backendStatus === 'connected' ? 'bg-green-500' :
                 backendStatus === 'disconnected' ? 'bg-red-500' : 'bg-yellow-500'
-              }`}></div>
+                }`}></div>
               <span className="text-sm text-gray-600">
-                Backend: {backendStatus === 'connected' ? 'Connected' : 
-                         backendStatus === 'disconnected' ? 'Disconnected' : 'Checking...'}
+                Backend: {backendStatus === 'connected' ? 'Connected' :
+                  backendStatus === 'disconnected' ? 'Disconnected' : 'Checking...'}
               </span>
               <button
                 onClick={checkBackendStatus}
@@ -1879,30 +1875,29 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
             </div>
           </div>
         </div>
-        
-        <div className="flex space-x-2 bg-white p-2 rounded-2xl shadow-lg mb-8">
+
+        <div className="flex space-x-2 bg-white p-2 rounded-2xl shadow-lg mb-8 overflow-x-auto scrollbar-hide">
           {[
             { id: 'overview', label: 'Dashboard', icon: TrendingUp },
             { id: 'products', label: 'My Products', icon: Package },
             { id: 'orders', label: 'Orders', icon: ShoppingBag },
             { id: 'customers', label: 'Customers', icon: Users },
-            { id: 'profile', label: 'My Profile', icon: User }
+            { id: 'profile', label: 'My Profile', icon: UserIcon }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-300 font-semibold ${
-                activeTab === tab.id
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 md:px-6 md:py-3 rounded-xl transition-all duration-300 font-semibold text-sm md:text-base whitespace-nowrap ${activeTab === tab.id
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
             >
               <tab.icon className="h-5 w-5" />
               <span>{tab.label}</span>
             </button>
           ))}
         </div>
-        
+
         {/* Floating Chatbot Button */}
         <button
           onClick={() => setShowChatbot(true)}
@@ -2051,11 +2046,10 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
                           </div>
                           <div className="text-right">
                             <div className="font-bold text-green-600">₹{order.totalAmount}</div>
-                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
-                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                               order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
+                                'bg-blue-100 text-blue-800'
+                              }`}>
                               {order.status}
                             </span>
                           </div>
@@ -2077,46 +2071,46 @@ const FarmerDashboard: React.FC<FarmerDashboardProps> = ({ user }) => {
           </div>
         </div>
       )}
-      
-    {showPriceInfo && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black bg-opacity-40" onClick={() => setShowPriceInfo(false)}></div>
-        <div className="relative z-10 bg-white w-11/12 max-w-xl rounded-2xl shadow-2xl p-6">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-yellow-600" />
+
+      {showPriceInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-40" onClick={() => setShowPriceInfo(false)}></div>
+          <div className="relative z-10 bg-white w-11/12 max-w-xl rounded-2xl shadow-2xl p-6">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-yellow-600" />
+                </div>
               </div>
-            </div>
-            <div className="flex-1">
-              <h4 className="text-xl font-bold text-gray-900 mb-2">Important pricing information</h4>
-              <p className="text-gray-700 leading-relaxed">
-                To encourage quick sales and reflect freshness, the listed price of your product will automatically be reduced by <span className="font-semibold">20%</span> every <span className="font-semibold">24 hours</span> after listing.
-              </p>
-              <ul className="mt-3 text-sm text-gray-600 list-disc list-inside space-y-1">
-                <li>This applies until the item is sold or you update/remove the listing.</li>
-                <li>Please set an initial price accordingly.</li>
-                <li>Your revenue from completed orders will be credited to your account on a <span className="font-semibold">weekly basis</span>.</li>
-              </ul>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowPriceInfo(false)}
-                  className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { setShowPriceInfo(false); setShowAddProduct(true); }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 font-semibold shadow-lg"
-                >
-                  OK
-                </button>
+              <div className="flex-1">
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Important pricing information</h4>
+                <p className="text-gray-700 leading-relaxed">
+                  To encourage quick sales and reflect freshness, the listed price of your product will automatically be reduced by <span className="font-semibold">20%</span> every <span className="font-semibold">24 hours</span> after listing.
+                </p>
+                <ul className="mt-3 text-sm text-gray-600 list-disc list-inside space-y-1">
+                  <li>This applies until the item is sold or you update/remove the listing.</li>
+                  <li>Please set an initial price accordingly.</li>
+                  <li>Your revenue from completed orders will be credited to your account on a <span className="font-semibold">weekly basis</span>.</li>
+                </ul>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={() => setShowPriceInfo(false)}
+                    className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setShowPriceInfo(false); setShowAddProduct(true); }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 font-semibold shadow-lg"
+                  >
+                    OK
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {showChatbot && (
         <Chatbot
